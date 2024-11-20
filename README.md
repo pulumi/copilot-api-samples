@@ -14,7 +14,7 @@ Copilot APIs unlock capabilities beyond those available in the Pulumi Console, s
 
 ## What can I do with Copilot APIs?
 
-Let's look at some examples. Using Copilot REST APIs you can submit a query to Copilot such as "Who are the admins in my organization?", or ask a question about a specific resource or an update. Let's look at some examples.
+Using Copilot REST APIs you can submit a query to Copilot such as "Who are the admins in my organization?", or ask a question about a specific resource or an update. Let's look at some examples.
 
 ### Initial setup
 
@@ -27,16 +27,16 @@ export PULUMI_ACCESS_TOKEN="pul-..."
 
 (You can get the actual value for your PULUMI_ACCESS_TOKEN from the Pulumi Console)
 
-> **Note:** > `PULUMI_COPILOT_URL` is expected to change on 11/20. If you receive HTTP error 404 from this endpoint, change it to `https://api.pulumi.com/ai/chat/preview`
+> **Note:** > `PULUMI_COPILOT_URL` is expected to change on 11/20. If you receive HTTP error 404 from this endpoint, change it to `https://api.pulumi.com/ai/chat/preview`. This will be the proper URL going forward.
 
 ### Cloud context parameters
 
-All calls to Copilot API are made in the context of an organization. You will see in this in `orgId` field below.
-Additionally, Copilot API needs to know the URL of the resource in Pulumi Console -- think of that as the browser URL in Pulumi Console when you're chatting with Copilot. This is what allows you refer to it in the query, asking questions like "What happened in _this_ update?". This fields must start with `https://app.pulumi.com` optionally followed by the specific resource.
+All calls to Copilot API are made in the context of an organization. You will see this in the `orgId` field below.
+Additionally, Copilot API needs to know the URL of the resource in Pulumi Console -- think of that as the browser URL in Pulumi Console when you're chatting with Copilot. This is what allows you to refer to it in the query, asking questions like "What happened in _this_ update?". This field must start with `https://app.pulumi.com` optionally followed by a specific resource.
 
 ### Calling the API
 
-We're now ready to submit the request!
+We're now ready to submit our first request!
 
 The example above uses curl, but you can use other tools such as Postman or `Invoke-WebRequest` in PowerShell.
 
@@ -61,13 +61,13 @@ The response from the API returns JSON that you will need to parse to extract th
 
 ### Multi-turn conversations
 
-You will response contains a conversation ID:
+The HTTP response contains a conversation ID:
 
 ```
 "conversationId":"369a280c-63f3-4ee6-a13d-c1035a3d05de" ...
 ```
 
-You can use this conversation ID for multi-turn conversations, in which you can refer to what you or Copilot has said earlier:
+You will use this conversation ID for multi-turn conversations, in which you can refer to what you or Copilot has said earlier:
 
 ```
 curl -L "$PULUMI_COPILOT_URL" \
@@ -87,8 +87,8 @@ curl -L "$PULUMI_COPILOT_URL" \
 }'
 ```
 
-Note that Copilot understood who your referring to in "them" because you continued the conversation that already started.
+Note that Copilot understood who your referring to in "them" because you continued the conversation that already started. Copilot keeps track of the messages in the conversation based on the conversation ID.
 
 ### More samples
 
-More code samples are available in TBD...
+More code samples are available in the samples directory.
