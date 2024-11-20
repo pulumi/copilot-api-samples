@@ -91,4 +91,4 @@ Note that Copilot understood who your referring to in "them" because you continu
 
 ### More samples
 
-More code samples are available in the samples directory.
+More code samples are available in the [samples](https://github.com/pulumi/copilot-api-samples/tree/main/samples) directory.
