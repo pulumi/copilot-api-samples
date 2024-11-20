@@ -67,7 +67,7 @@ You will response contains a conversation ID:
 "conversationId":"369a280c-63f3-4ee6-a13d-c1035a3d05de" ...
 ```
 
-You can use this conversation ID for multi-turn conversations, in which you can refer to
+You can use this conversation ID for multi-turn conversations, in which you can refer to what you or Copilot has said earlier:
 
 ```
 curl -L "$PULUMI_COPILOT_URL" \
