@@ -30,48 +30,40 @@ type RequestBody struct {
 	State          State  `json:"state"`
 }
 
-type MessageContent struct {
-	StringContent  string   `json:"-"`
-	ArrayContent   []string `json:"-"`
-	IsArrayContent bool     `json:"-"`
-}
-
-func (mc *MessageContent) UnmarshalJSON(data []byte) error {
-	var s string
-	if err := json.Unmarshal(data, &s); err == nil {
-		mc.StringContent = s
-		mc.IsArrayContent = false
-		return nil
-	}
-
-	var a []string
-	if err := json.Unmarshal(data, &a); err == nil {
-		mc.ArrayContent = a
-		mc.IsArrayContent = true
-		return nil
-	}
-
-	return fmt.Errorf("content must be either string or array of strings")
-}
-
 type Message struct {
-	Role    string         `json:"role"`
-	Content MessageContent `json:"content"`
-	Kind    string         `json:"kind,omitempty"`
+	Role    string          `json:"role"`
+	Content json.RawMessage `json:"content"`
+	Kind    string          `json:"kind,omitempty"`
 }
 
-type Program struct {
+type ProgramContent struct {
 	Code     string `json:"code"`
 	Language string `json:"language"`
 	Plan     struct {
-		Instructions string `json:"instructions"`
+		Instructions string   `json:"instructions"`
+		SearchTerms  []string `json:"searchTerms"`
 	} `json:"plan"`
 }
 
 type Response struct {
 	ConversationID string    `json:"conversationId"`
 	Messages       []Message `json:"messages"`
-	Programs       []Program `json:"programs,omitempty"`
+}
+
+func (m *Message) GetContent() (string, *ProgramContent, error) {
+	if m.Kind == "program" {
+		var program ProgramContent
+		if err := json.Unmarshal(m.Content, &program); err != nil {
+			return "", nil, err
+		}
+		return "", &program, nil
+	} else {
+		var messageText string
+		if err := json.Unmarshal(m.Content, &messageText); err != nil {
+			return "", nil, err
+		}
+		return messageText, nil, nil
+	}
 }
 
 func main() {
@@ -114,19 +106,26 @@ func main() {
 
 		conversationID = response.ConversationID
 
-		// Print normal assistant responses
+		// Print assistant messages that are either textual responses or programs
 		for _, msg := range response.Messages {
-			if msg.Role == "assistant" && msg.Kind == "" {
-				fmt.Printf("\nAssistant: %s\n", msg.Content.StringContent)
-			}
-		}
+			if msg.Role == "assistant" {
+				content, program, err := msg.GetContent()
 
-		// Print program information if available
-		if len(response.Programs) > 0 {
-			for _, program := range response.Programs {
-				fmt.Printf("\nInstructions:\n%s\n", program.Plan.Instructions)
-				fmt.Printf("\nLanguage: %s\n", program.Language)
-				fmt.Printf("\nCode:\n%s\n", program.Code)
+				if err != nil {
+					fmt.Printf("Error processing message: %v\n", err)
+					continue
+				}
+
+				switch msg.Kind {
+				case "response":
+					fmt.Printf("\nAssistant: %s\n", content)
+				case "program":
+					if program != nil {
+						fmt.Printf("\nInstructions:\n%s\n", program.Plan.Instructions)
+						fmt.Printf("\nLanguage: %s\n", program.Language)
+						fmt.Printf("\nCode:\n%s\n", program.Code)
+					}
+				}
 			}
 		}
 	}
@@ -162,6 +161,7 @@ func makeRequest(url, token, query, orgID, conversationID string) (*Response, er
 
 	req.Header.Add("Authorization", "token "+token)
 	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("responseFormatVersion", "2") // request response in v2 format
 
 	resp, err := client.Do(req)
 	if err != nil {

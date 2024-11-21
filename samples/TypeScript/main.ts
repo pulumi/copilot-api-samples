@@ -1,4 +1,6 @@
 import * as readline from "readline";
+import * as https from "https";
+import { IncomingMessage } from "http";
 
 interface CloudContext {
     orgId: string;
@@ -19,102 +21,119 @@ interface RequestBody {
     state: State;
 }
 
-type MessageContent = string | string[];
-
-interface Message {
-    role: string;
-    content: MessageContent;
-    kind?: string;
-}
-
-interface Program {
+interface ProgramContent {
     code: string;
     language: string;
     plan: {
         instructions: string;
+        searchTerms: string[];
     };
+}
+
+interface Message {
+    role: string;
+    content: any; // Using 'any' because content can be string[] or ProgramContent
+    kind?: string;
 }
 
 interface Response {
     conversationId: string;
     messages: Message[];
-    programs?: Program[];
 }
 
-async function makeRequest(
-    url: string,
-    token: string,
-    query: string,
-    orgId: string,
-    conversationId?: string
-): Promise<Response> {
-    const requestBody: RequestBody = {
-        query,
-        state: {
-            client: {
-                cloudContext: {
-                    orgId,
-                    url: "https://app.pulumi.com",
+class CopilotClient {
+    private rl: readline.Interface;
+
+    constructor() {
+        this.rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+        });
+    }
+
+    private async readLine(prompt: string): Promise<string> {
+        return new Promise((resolve) => {
+            this.rl.question(prompt, (answer) => {
+                resolve(answer.trim());
+            });
+        });
+    }
+
+    private async makeRequest(
+        url: string,
+        token: string,
+        query: string,
+        orgId: string,
+        conversationId?: string
+    ): Promise<Response> {
+        const requestBody: RequestBody = {
+            query,
+            state: {
+                client: {
+                    cloudContext: {
+                        orgId,
+                        url: "https://app.pulumi.com",
+                    },
                 },
             },
-        },
-    };
+        };
 
-    if (conversationId) {
-        requestBody.conversationId = conversationId;
-    }
+        if (conversationId) {
+            requestBody.conversationId = conversationId;
+        }
 
-    const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            Authorization: `token ${token}`,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-        throw new Error(
-            `HTTP error! status: ${response.status}. Response: ${await response.text()}`
-        );
-    }
-
-    return (await response.json()) as Response;
-}
-
-async function readLine(prompt: string, rl: readline.Interface): Promise<string> {
-    return new Promise((resolve) => {
-        rl.question(prompt, (answer) => {
-            resolve(answer.trim());
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                Authorization: `token ${token}`,
+                "Content-Type": "application/json",
+                responseFormatVersion: "2",
+            },
+            body: JSON.stringify(requestBody),
         });
-    });
-}
 
-async function main() {
-    const copilotUrl = process.env.PULUMI_COPILOT_URL;
-    const accessToken = process.env.PULUMI_ACCESS_TOKEN;
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`Received status code ${response.status}. Response body: ${text}`);
+        }
 
-    if (!copilotUrl || !accessToken) {
-        console.error(
-            "Error: PULUMI_COPILOT_URL and PULUMI_ACCESS_TOKEN environment variables must be set"
-        );
-        process.exit(1);
+        return response.json();
     }
 
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-    });
+    private processMessage(msg: Message) {
+        if (msg.role === "assistant") {
+            switch (msg.kind) {
+                case "response":
+                    console.log("\nAssistant:", msg.content);
+                    break;
+                case "program":
+                    const program = msg.content as ProgramContent;
+                    console.log("\nInstructions:\n", program.plan.instructions);
+                    console.log("\nLanguage:", program.language);
+                    console.log("\nCode:\n", program.code);
+                    break;
+            }
+        }
+    }
 
-    try {
-        const orgId = await readLine("Enter your organization: ", rl);
+    async run() {
+        const copilotUrl = process.env.PULUMI_COPILOT_URL;
+        const accessToken = process.env.PULUMI_ACCESS_TOKEN;
 
+        if (!copilotUrl || !accessToken) {
+            console.log(
+                "Error: PULUMI_COPILOT_URL and PULUMI_ACCESS_TOKEN environment variables must be set"
+            );
+            process.exit(1);
+        }
+
+        const orgId = await this.readLine("Enter your organization: ");
         console.log("\nEnter your questions (press Enter twice to exit):");
 
         let conversationId: string | undefined;
 
         while (true) {
-            const query = await readLine("\nYou: ", rl);
+            const query = await this.readLine("\nYou: ");
 
             if (!query) {
                 console.log("Goodbye!");
@@ -122,7 +141,7 @@ async function main() {
             }
 
             try {
-                const response = await makeRequest(
+                const response = await this.makeRequest(
                     copilotUrl,
                     accessToken,
                     query,
@@ -132,37 +151,18 @@ async function main() {
 
                 conversationId = response.conversationId;
 
-                // Print normal assistant responses
-                response.messages.forEach((msg) => {
-                    if (msg.role === "assistant" && !msg.kind) {
-                        const content =
-                            typeof msg.content === "string"
-                                ? msg.content
-                                : msg.content.join("\n");
-                        console.log(`\nAssistant: ${content}`);
-                    }
-                });
-
-                // Print program information if available
-                if (response.programs) {
-                    response.programs.forEach((program) => {
-                        console.log(`\nInstructions:\n${program.plan.instructions}`);
-                        console.log(`\nLanguage: ${program.language}`);
-                        console.log(`\nCode:\n${program.code}`);
-                    });
+                for (const msg of response.messages) {
+                    this.processMessage(msg);
                 }
             } catch (error) {
-                console.error("Error:", error instanceof Error ? error.message : error);
+                console.error("Error:", error);
             }
         }
-    } finally {
-        rl.close();
+
+        this.rl.close();
     }
 }
 
-if (require.main === module) {
-    main().catch((error) => {
-        console.error("Fatal error:", error);
-        process.exit(1);
-    });
-}
+// Run the client
+const client = new CopilotClient();
+client.run().catch(console.error);
