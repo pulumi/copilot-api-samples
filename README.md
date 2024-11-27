@@ -21,14 +21,11 @@ Using Copilot REST APIs you can submit a query to Copilot such as "Who are the a
 You will need to set the following environment variables:
 
 ```bash
-export PULUMI_COPILOT_URL="https://app.pulumi.com/ai/api/chat/v2"
+export PULUMI_COPILOT_URL="https://api.pulumi.com/api/ai/chat/preview"
 export PULUMI_ACCESS_TOKEN="pul-..."
 ```
 
 (You can get the actual value for your PULUMI_ACCESS_TOKEN from the Pulumi Console)
-
-> **Note:**
-> `PULUMI_COPILOT_URL` is expected to change on 11/20. If you receive HTTP error 404 from this endpoint, change it to `https://api.pulumi.com/ai/chat/preview`. This will be the proper URL going forward.
 
 ### Cloud context parameters
 
