@@ -3,16 +3,13 @@ This sample shows how to build a command-line chatbot that can be used to chat w
 To run the program, do
 
 ```sh
-tsc main.ts
-node main.js
+npx tsx main.ts
 ```
 
 Below is an example of a chat:
 
 ```
-$tsc main.ts
-
-$node main.js
+$npx tsx main.ts
 
 Enter your organization: pulumi
 
