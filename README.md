@@ -62,7 +62,7 @@ The response from the API returns JSON that you will need to parse to extract th
 The HTTP response contains a conversation ID:
 
 ```
-"conversationId":"369a280c-63f3-4ee6-a13d-c1035a3d05de" ...
+"conversationId":"369a280c-63f3-4ee6-a13d-c1035a3d05de"
 ```
 
 You will use this conversation ID for multi-turn conversations, in which you can refer to what you or Copilot has said earlier:
@@ -90,3 +90,7 @@ Note that Copilot understood who you are referring to in "them" because you cont
 ### More samples
 
 More code samples are available in the [samples](https://github.com/pulumi/copilot-api-samples/tree/main/samples) directory.
+
+### Feedback and bug reports
+
+Found a bug or have a suggestion? Submit an [issue](https://github.com/pulumi/copilot-api-samples/issues).
