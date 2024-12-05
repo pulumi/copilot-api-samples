@@ -85,7 +85,7 @@ curl -L "$PULUMI_COPILOT_URL" \
 }'
 ```
 
-Note that Copilot understood who your referring to in "them" because you continued the conversation that already started. Copilot keeps track of the messages in the conversation based on the conversation ID.
+Note that Copilot understood who you are referring to in "them" because you continued the conversation that already started. Copilot keeps track of the messages in the conversation based on the conversation ID.
 
 ### More samples
 
